@@ -1,6 +1,6 @@
 import re
 import warnings
-from docstring_parser import parse as docstring_parse, Docstring
+from docstring_parser import parse as docstring_parse, Docstring, DocstringParam
 from typing import Callable
 import inspect
 
@@ -11,17 +11,17 @@ class ParserException(Exception):
 class FunctionParser:
     def __init__(self, func: Callable):
         self.func = func
-        self._docstring = self.parse_docstring()
-
-        print(self.parameters)
+        self._docstring = self._parse_docstring()
+        self.parameters()
 
     # TODO Add check to ensure func parameter is a actually a function
 
-    def parse_docstring(self) -> Docstring:
+    def _parse_docstring(self) -> Docstring:
         docstring = inspect.getdoc(self.func)
         return docstring_parse(docstring)
 
-    def _parse_func_parameters(self) -> list[inspect.Parameter]:
+    def _parse_func_parameters(self) -> dict[str, inspect.Parameter]:
+        """Uses inspect library to read parameters from function"""
         # Get dictionary of parameters by name
         parameters = dict(inspect.signature(self.func).parameters)
 
@@ -36,11 +36,23 @@ class FunctionParser:
                 parameters.pop(param.name)
 
         # Return the list of supported parameters
-        return list(parameters.values())
+        return parameters
+
+    def _parse_docstring_parameters(self) -> dict[str, DocstringParam]:
+        """Uses docstring_parser library to read parameters from docstring"""
+        parameters = self._docstring.params
+
+        return {param.arg_name: param for param in parameters}
+
 
     @property
     def description(self) -> str:
-        """Returns the description found in the function"""
+        """
+        If possible returns a description found in the function in the order below:
+        - Long description in docstring
+        - Short description at top of docstring
+        - Comment above function
+        """
         # Long description in docstring
         if self._docstring.long_description:
             return self._docstring.long_description
@@ -58,12 +70,13 @@ class FunctionParser:
 
     def parameters(self):
         func_parameters = self._parse_func_parameters()
-        ds_parameters = self._docstring.params
+        ds_parameters = self._parse_docstring_parameters()
 
-        for param in func_parameters:
-            name = param.name
+        for name, func_param in func_parameters.items():
             ds_param = ds_parameters[name]
-
+            print(name)
+            print(func_param)
+            print(ds_param)
             d = {'arg_name': name,
                  'title': self._title(name),
                  'description': '',
