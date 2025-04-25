@@ -9,21 +9,24 @@ import inspect
 
 
 
-# This does a thing!
-def integer_processor(number, banana: str, flag: bool = True, test: str = "yo", *args, **kwargs) -> tuple[str, int]:
+# This is the comment for a function that does nothing.
+def test_function(number: int, flag: bool = True, *args, **kwargs) -> tuple[int, bool]:
     """
-    Yoyoyo. This is a function
+    This is the short description for a function that does nothing.
+
+    This is the long description for a function that does nothing.
 
     Args:
-        banana:
-        number: A valid integer
-        flag: A boolean flag
+        *args:
+        **kwargs:
+        number (int): A valid integer
+        flag (bool, optional): A boolean flag
 
     Returns:
-        A string or integer
+        The input number and flag
 
     """
-    return banana, number
+    return number, flag
 
 #pprint(inspect.signature(integer_processor).parameters)
 #for p in inspect.signature(integer_processor).parameters.values():
@@ -41,7 +44,7 @@ def integer_processor(number, banana: str, flag: bool = True, test: str = "yo", 
 
 def main():
 
-    fp = FunctionParser(integer_processor)
+    fp = FunctionParser(test_function)
     print(fp.description)
 
 

@@ -1,45 +1,36 @@
 import pytest
 from funky.parser import FunctionParser, ParserException
 
-
-def func_wo_hints(int_var, str_var):
-    pass
-
-def func_w_kw_only_arg(int_var, str_var, kw_arg: bool = False):
-    pass
-
-def func_w_docstring_hints(int_var, str_var):
+# This is the comment for a function that does nothing.
+def example_function(number: int, flag: bool = True, *args, **kwargs) -> tuple[int, bool]:
     """
+    This is the short description for a function that does nothing.
+
+    This is the long description for a function that does nothing.
+
     Args:
-        int_var (int): Integer
-        str_var (str): String
+        *args:
+        **kwargs:
+        number (int): A valid integer
+        flag (bool, optional): A boolean flag
+
+    Returns:
+        The input number and flag
+
     """
-    pass
+    return number, flag
+
+# TODO Write tests for parsing arg_name, title (done), description, type, optional, default_value
+
+def test_pretty_split():
+    assert FunctionParser._title("lower") == "Lower"
+    assert FunctionParser._title("Capitalised") == "Capitalised"
+    assert FunctionParser._title("snake_case") == "Snake Case"
+    assert FunctionParser._title("UPPER_SNAKE_CASE") == "Upper Snake Case"
+    assert FunctionParser._title("Capitilised_Snake_Case") == "Capitilised Snake Case"
+    assert FunctionParser._title("PascalCase") == "Pascal Case"
+    assert FunctionParser._title("camelCase") == "Camel Case"
+    assert FunctionParser._title("3DCamelCase") == "3D Camel Case"
+    assert FunctionParser._title("Camel5Case") == "Camel 5 Case"
 
 
-def func_wo_return_hint(int_var: int, str_var: str):
-    pass
-
-
-def func_w_hints(int_var: int, str_var: str) -> tuple[str, int]:
-    return str_var, int_var
-
-
-# TODO: update tests as they now all fail
-def test_arguments_wo_hints():
-    assert FunctionParser(func_wo_hints).get_typehints() == {}
-
-def test_arguments_wo_return_hint():
-    assert FunctionParser(func_wo_return_hint).get_typehints() == {"str_var": str, "int_var": int}
-
-def test_arguments_w_return_hint():
-    assert FunctionParser(func_w_hints).get_typehints() == {"str_var": str, "int_var": int}
-
-def test_invalid_funcs():
-    def func_w_args(int_var, str_var, *args): pass
-    def func_w_kwargs(int_var, str_var, *kwargs): pass
-
-    with pytest.raises(ParserException):
-        FunctionParser(func_w_args)
-    with pytest.raises(ParserException):
-        FunctionParser(func_w_kwargs)
