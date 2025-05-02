@@ -1,6 +1,8 @@
 '''
 A simple Gooey example. One required field, one optional.
 '''
+from pprint import pprint
+
 from funky import FunctionParser
 
 
@@ -26,7 +28,8 @@ def some_function(number: int, flag: bool = True, *args, **kwargs) -> tuple[int,
     return number, flag
 
 def main():
-    fp = FunctionParser(some_function)
+    fp = FunctionParser(some_function).parameters
+    pprint(list(fp))
 
 if __name__ == '__main__':
     main()

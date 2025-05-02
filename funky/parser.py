@@ -1,20 +1,37 @@
-import re
 import warnings
+from typing import Callable, Any, Type
+
+from pydoc import locate
+from pydantic import TypeAdapter
+from pydantic.dataclasses import dataclass
+
 from docstring_parser import parse as docstring_parse, Docstring, DocstringParam
-from typing import Callable
 import inspect
+
 
 class ParserException(Exception):
     pass
 
 
+@dataclass
+class Parameter:
+    name: str
+    type: Type
+    description: str = ""
+    optional: bool = False
+    default_value: Any = None
+
+
+# TODO: Add ability to use class or method - if not callable(func):
+#  May need to create an ABC for Parser and create ClassParser and MethodParser
+
 class FunctionParser:
     def __init__(self, func: Callable):
+        # Check to ensure the provided func variable is a function
+        if not inspect.isfunction(func):
+            raise ParserException(f"The object {func} is not a function")
         self.func = func
-        self._docstring = self._parse_docstring()
-        self.parameters()
-
-    # TODO Add check to ensure func parameter is a actually a function
+        self._docstring: Docstring = self._parse_docstring()
 
     def _parse_docstring(self) -> Docstring:
         docstring = inspect.getdoc(self.func)
@@ -49,61 +66,66 @@ class FunctionParser:
     def description(self) -> str:
         """
         If possible returns a description found in the function in the order below:
-        - Long description in docstring
-        - Short description at top of docstring
+        - Description in docstring
         - Comment above function
         """
-        # Long description in docstring
-        if self._docstring.long_description:
-            return self._docstring.long_description
 
-        # Short description at top of docstring
-        elif self._docstring.short_description:
-            return self._docstring.short_description
+        # Description in docstring
+        if self._docstring.description:
+            return self._docstring.description
 
         # Comment above function
         elif inspect.getcomments(self.func):
-            return inspect.getcomments(self.func).lstrip("# ")
+            return inspect.getcomments(self.func).lstrip("#").strip()
 
         else:
             return ""
 
-    def parameters(self):
+    @property
+    def parameters(self) -> list[Parameter]:
         func_parameters = self._parse_func_parameters()
         ds_parameters = self._parse_docstring_parameters()
 
+        params = []
+
         for name, func_param in func_parameters.items():
-            ds_param = ds_parameters[name]
-            print(name)
-            print(func_param)
-            print(ds_param)
-            d = {'arg_name': name,
-                 'title': self._title(name),
-                 'description': '',
-                 'type': None,
-                 'optional': None,
-                 'default_value': None
-                 }
+            ds_param = ds_parameters.get(name, DocstringParam)
 
-    @staticmethod
-    def _title(arg_name: str) -> str:
-        """Formats the title to be Capitalised and split words"""
-        # Split Snake Case and return
-        if "_" in arg_name:
-            return arg_name.replace("_", " ").title()
+            # Set Parameter type
+            if func_param.annotation != func_param.empty:
+                _type = func_param.annotation
+            elif ds_param.type_name:
+                _type = locate(ds_param.type_name)
+            else:
+                _type = None    # Will raise an exception!
 
-        # Convert Camel Case to Pascal Case
-        if arg_name[0].islower():
-            arg_name = arg_name[:1].upper() + arg_name[1:]
+            if func_param.default != func_param.empty or ds_param.is_optional:
+                optional = True
+            else:
+                optional = False
 
-        # Thanks mnesarco for this solution
-        def split_pascal(value):
-            return re.findall('[A-Z][a-z]+|[0-9A-Z]+(?=[A-Z][a-z])|[0-9A-Z]{2,}|[a-z0-9]{2,}|[a-zA-Z0-9]', value)
+            if func_param.default != func_param.empty:
+                default_value = func_param.default
+            elif ds_param.default:
+                # Attempts to convert the default value if it was provided as a string
+                default_value = TypeAdapter(_type).validate_python(ds_param.default)
+            else:
+                default_value = None
 
-        # Split Pascal Case
-        return " ".join(split_pascal(arg_name))
+            params.append(Parameter(name=name,
+                            description=ds_param.description,
+                            type=_type,
+                            optional=optional,
+                            default_value=default_value
+                            )
+                          )
 
-class MultiFunctionParser:
+        return params
+
+
+class MultiParser:
     def __init__(self, *funcs):
         for func in funcs:
             yield FunctionParser(func)
+
+
