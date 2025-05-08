@@ -1,4 +1,9 @@
+from decimal import Decimal
 import re
+from datetime import date, time
+from pathlib import Path
+from typing import Literal
+
 
 def _capitalise_string(arg_name: str) -> str:
     """Formats a function name or variable to be Capitalised and split words"""
@@ -15,3 +20,16 @@ def _capitalise_string(arg_name: str) -> str:
                               arg_name)
 
     return " ".join(split_pascal)
+
+
+# TODO: Update component mapping (using Gooey terms for now)
+component_mapping = {bool: 'BlockCheckbox',
+                     str: 'TextCtrl',
+                     int: 'IntegerField',
+                     Decimal: 'DecimalField',
+                     list: 'DirChooser' or 'FileChooser' or 'FileSaver',
+                     list[Path]: 'MultiFileChooser',
+                     date: 'DateChooser',
+                     time: 'TimeChooser',
+                     Literal: 'FilterableDropdown',
+                     }
