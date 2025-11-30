@@ -15,8 +15,8 @@ dir_path = Path(__file__).parent
 class ThreadWithReturnValue(Thread):
 
     def __init__(self, group=None, target=None, name=None, args=(), kwargs=None):
-        self._return = None
         super().__init__(group, target, name, args, kwargs)
+        self._return = None
 
     def run(self):
         try:
